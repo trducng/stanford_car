@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from dataset import TrainDataset
 from model import Model
-from utils import Tracker, get_predictions
+from utils import Tracker, get_predictions, SuperConvergence
 
 
 
@@ -39,6 +39,8 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
     criterion_attention = nn.MSELoss()
     optimizer = optim.Adam(params=model.parameters(), lr=learning_rate)
     feature_center = torch.zeros(196, n_attentions * 2048)
+    scheduler = SuperConvergence(optimizer, max_lr=5e-4, stepsize=5000,
+                                 better_as_larger=False, last_epoch=-1)
     if gpu:
         feature_center = feature_center.cuda()
 
@@ -133,11 +135,16 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
             loss.backward()
             optimizer.step()
 
+            stop = (epoch == 5)
+            scheduler.step(epoch=1, metrics=train_loss_tracker.get_average(),
+                           stop=stop)
+
             if idx % 100 == 0:
-                print('Batch {}, average loss {} - average accuracy {}'.format(
-                    idx,
-                    train_loss_tracker.get_average(),
-                    train_accuracy_tracker.get_average()))
+                _temp_lr = optimizer.param_groups[0]['lr']
+                print('Batch {}, average loss {} - average accuracy {}, lr {}'
+                    .format(idx, train_loss_tracker.get_average(),
+                            train_accuracy_tracker.get_average(),
+                            _temp_lr))
 
         # do validation pass
         val_loss_tracker = Tracker()
