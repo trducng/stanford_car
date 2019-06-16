@@ -2,5 +2,6 @@ scipy
 pandas
 numpy
 matplotlib
-
+git+https://github.com/aleju/imgaug#egg=imgaug
+opencv-python
 

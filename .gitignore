@@ -70,6 +70,7 @@ develop-eggs/
 dist/
 data/*
 !data/samples/
+!data/meta.json
 downloads/
 eggs/
 .eggs/
