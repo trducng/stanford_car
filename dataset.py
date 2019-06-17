@@ -101,7 +101,8 @@ class TrainDataset(Dataset):
 
         # load and transform image
         image = cv2.imread(filepath)
-        image = augmenter.augment_image(image)
+        if self.phase != 'test':
+            image = augmenter.augment_image(image)
         image = ia.imresize_single_image(image, self.shape)
         image = image / 255
         image = (image - self.mean) / self.std
@@ -154,7 +155,6 @@ class TestDataset(Dataset):
 
         # load test image the same way with train image
         image = cv2.imread(filepath)
-        image = augmenter.augment_image(image)
         image = ia.imresize_single_image(image, self.shape)
         image = image / 255
         image = (image - self.mean) / self.std
