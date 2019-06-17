@@ -38,8 +38,8 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
     criterion = nn.CrossEntropyLoss()
     criterion_attention = nn.MSELoss()
     optimizer = optim.Adam(params=model.parameters(), lr=learning_rate)
-    feature_center = torch.zeros(196, n_attentions * 2048)
-    scheduler = SuperConvergence(optimizer, max_lr=5e-4, stepsize=5000,
+    feature_center = torch.zeros(196, n_attentions * 2208)
+    scheduler = SuperConvergence(optimizer, max_lr=learning_rate, stepsize=5000,
                                  better_as_larger=False, last_epoch=-1)
     if gpu:
         feature_center = feature_center.cuda()
@@ -136,7 +136,7 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
             optimizer.step()
 
             stop = (epoch == 5)
-            scheduler.step(epoch=1, metrics=train_loss_tracker.get_average(),
+            scheduler.step(epoch=None, metrics=train_loss_tracker.get_average(),
                            stop=stop)
 
             if idx % 100 == 0:
@@ -196,7 +196,7 @@ if __name__ == '__main__':
                         help='The image size, default "256 256"')
     parser.add_argument('--batch_size', default=8, type=int,
                         help='The batch size')
-    parser.add_argument('--learning_rate', default=1e-3, type=float,
+    parser.add_argument('--learning_rate', default=1e-4, type=float,
                         help='Learing rate')
     parser.add_argument('--gpu', action='store_true',
                         help='Set to use GPU')

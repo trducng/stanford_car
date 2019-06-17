@@ -49,6 +49,16 @@ def get_resnet_feature_extractor(version=152):
     return features
 
 
+def get_densenet_feature_extractor():
+    """Get the DensetNet feature extractor"""
+    model = models.densenet161(pretrained=True)
+    features = nn.Sequential(
+        model.features,
+        nn.ReLU()
+    )
+    return features
+
+
 class BilinearAttentionPool(nn.Module):
     """Bilinear Attention Pooling.
     Source: https://arxiv.org/abs/1901.09891
@@ -132,13 +142,15 @@ class Model(nn.Module):
         self.n_attentions = n_attentions
 
         # model information
-        self.conv = get_resnet_feature_extractor(version=resnet_version)
+        # self.conv = get_resnet_feature_extractor(version=resnet_version)
+        print('densenet')
+        self.conv = get_densenet_feature_extractor()
         self.attention = nn.Conv2d(
-            in_channels=2048, out_channels=n_attentions, kernel_size=1,
+            in_channels=2208, out_channels=n_attentions, kernel_size=1,
             padding=0, bias=False
         )
         self.bap = BilinearAttentionPool(pool='avg')
-        self.output = nn.Linear(in_features=n_attentions * 2048,
+        self.output = nn.Linear(in_features=n_attentions * 2208,
                                 out_features=n_classes)
         
         # load the state dict
@@ -153,7 +165,7 @@ class Model(nn.Module):
 
         # Returns
             [2D tensor]: logit of shape (B x n_classes)
-            [4D tensor]: feature map of shape (B x 2048 x H_ x W_)
+            [4D tensor]: feature map of shape (B x 2208 x H_ x W_)
             [4D tensor]: the attention map of shape (B x H_ x W_)
         """
         mini_batch = input_tensor.size(0)
@@ -163,7 +175,7 @@ class Model(nn.Module):
         attention_maps = self.attention(feature_maps)
         feature_matrix = self.bap(feature_maps, attention_maps)
         feature_matrix = feature_matrix.view(mini_batch, -1).contiguous()
-        # feature_matrix has size (B x (2048M))
+        # feature_matrix has size (B x (2208))
         logit = self.output(feature_matrix)
 
         # get a random attention map for each instance in the batch size
