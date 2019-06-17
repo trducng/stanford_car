@@ -11,11 +11,11 @@ from torch.utils.data import DataLoader
 
 from dataset import TrainDataset
 from model import Model
-from utils import Tracker, get_predictions
+from utils import Tracker, get_predictions, SuperConvergence
 
 
 
-def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
+def main(output_dir, n_attentions, image_shape, batch_size,
          learning_rate, gpu):
     """Perform model training"""
     
@@ -29,8 +29,7 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
 
     # initialize the model
     model = Model(n_classes=196, input_size=image_shape,
-                  n_attentions=n_attentions, resnet_version=resnet_version,
-                  gpu=gpu)
+                  n_attentions=n_attentions, gpu=gpu)
     if gpu:
         model = model.cuda()
 
@@ -38,7 +37,9 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
     criterion = nn.CrossEntropyLoss()
     criterion_attention = nn.MSELoss()
     optimizer = optim.Adam(params=model.parameters(), lr=learning_rate)
-    feature_center = torch.zeros(196, n_attentions * 2048)
+    feature_center = torch.zeros(196, n_attentions * 2208)
+    scheduler = SuperConvergence(optimizer, max_lr=learning_rate, stepsize=5000,
+                                 better_as_larger=False, last_epoch=-1)
     if gpu:
         feature_center = feature_center.cuda()
 
@@ -133,11 +134,16 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
             loss.backward()
             optimizer.step()
 
+            stop = (epoch == 10)
+            scheduler.step(epoch=None, metrics=train_loss_tracker.get_average(),
+                           stop=stop)
+
             if idx % 100 == 0:
-                print('Batch {}, average loss {} - average accuracy {}'.format(
-                    idx,
-                    train_loss_tracker.get_average(),
-                    train_accuracy_tracker.get_average()))
+                _temp_lr = optimizer.param_groups[0]['lr']
+                print('Batch {}, average loss {} - average accuracy {}, lr {}'
+                    .format(idx, train_loss_tracker.get_average(),
+                            train_accuracy_tracker.get_average(),
+                            _temp_lr))
 
         # do validation pass
         val_loss_tracker = Tracker()
@@ -166,7 +172,6 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
         state_dict = {
             'n_classes': 196,
             'input_size': image_shape,
-            'resnet_version': resnet_version,
             'n_attentions': n_attentions,
             'state_dict': model.state_dict()
         }
@@ -181,15 +186,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('output_dir',
                         help='The output directory to store checkpoint')
-    parser.add_argument('--resnet_version', default=152, type=int,
-                        help='Supported resnet, must be 18, 34, 50, 101, 152')
     parser.add_argument('--n_attentions', default=32, type=int,
                         help='Number of attention channels')
     parser.add_argument('--image_size', nargs='+', default=(256, 256),
                         help='The image size, default "256 256"')
     parser.add_argument('--batch_size', default=8, type=int,
                         help='The batch size')
-    parser.add_argument('--learning_rate', default=1e-3, type=float,
+    parser.add_argument('--learning_rate', default=1e-4, type=float,
                         help='Learing rate')
     parser.add_argument('--gpu', action='store_true',
                         help='Set to use GPU')
@@ -197,7 +200,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     main(
         output_dir=args.output_dir,
-        resnet_version=args.resnet_version,
         n_attentions=args.n_attentions,
         image_shape=args.image_size,
         batch_size=args.batch_size,

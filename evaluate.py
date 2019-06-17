@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 
 from dataset import TestDataset
 from model import Model
+from utils import get_predictions
 
 
 
@@ -33,7 +34,7 @@ def evaluate(ckpt, image_folder, gpu):
     dataloader = DataLoader(dataset, batch_size=1)
 
     filenames = []
-    predictions = []
+    logits = []
     for filename, each_image in dataloader:
         print(filename[0])
         if gpu:
@@ -43,16 +44,18 @@ def evaluate(ckpt, image_folder, gpu):
             logit, _, _ = model(each_image)
             logit = logit.squeeze()
             logit = torch.softmax(logit, dim=0)
-            predictions.append(logit.cpu().data.numpy())
+            logit = logit.cpu().data.numpy()
+
+            logits.append(logit)
             filenames.append(filename)
 
     # write out the result
     filenames = pd.DataFrame(np.stack(filenames, axis=0))
-    predictions = pd.DataFrame(np.stack(predictions, axis=0))
-    result = pd.concat([filenames, predictions], axis=1)
+    logits = pd.DataFrame(np.stack(logits, axis=0))
+    result = pd.concat([filenames, logits], axis=1)
     result.to_csv('result.csv', index=None, header=False)
 
-    return predictions
+    return logits
 
 
 if __name__ == '__main__':

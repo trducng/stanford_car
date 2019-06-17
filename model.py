@@ -49,6 +49,16 @@ def get_resnet_feature_extractor(version=152):
     return features
 
 
+def get_densenet_feature_extractor():
+    """Get the DensetNet feature extractor"""
+    model = models.densenet161(pretrained=True)
+    features = nn.Sequential(
+        model.features,
+        nn.ReLU()
+    )
+    return features
+
+
 class BilinearAttentionPool(nn.Module):
     """Bilinear Attention Pooling.
     Source: https://arxiv.org/abs/1901.09891
@@ -107,14 +117,13 @@ class Model(nn.Module):
         n_classes [int]: the number of output classes
         input_size [tuple of int]: the shape of image (width x height)
         n_attentions [int]: the number of attention maps
-        resnet_version [int]: support 18, 34, 50, 101 and 152
         ckpt_path [str]: the path to checkpoint model. If this value is set,
             all earlier values will be ignored
         gpu [bool]: whether to use gpu
     """
 
     def __init__(self, n_classes=196, input_size=(256, 256), n_attentions=4,
-                 resnet_version=152, ckpt=None, gpu=False):
+                 ckpt=None, gpu=False):
         """Initialize the object"""
         super(Model, self).__init__()
 
@@ -124,7 +133,6 @@ class Model(nn.Module):
             model_info = torch.load(ckpt, map_location=map_location)
             n_classes = model_info['n_classes']
             input_size = model_info['input_size']
-            resnet_version = model_info['resnet_version']
             n_attentions = model_info['n_attentions']
             
         self.n_classes = n_classes
@@ -132,13 +140,13 @@ class Model(nn.Module):
         self.n_attentions = n_attentions
 
         # model information
-        self.conv = get_resnet_feature_extractor(version=resnet_version)
+        self.conv = get_densenet_feature_extractor()
         self.attention = nn.Conv2d(
-            in_channels=2048, out_channels=n_attentions, kernel_size=1,
+            in_channels=2208, out_channels=n_attentions, kernel_size=1,
             padding=0, bias=False
         )
         self.bap = BilinearAttentionPool(pool='avg')
-        self.output = nn.Linear(in_features=n_attentions * 2048,
+        self.output = nn.Linear(in_features=n_attentions * 2208,
                                 out_features=n_classes)
         
         # load the state dict
@@ -153,7 +161,7 @@ class Model(nn.Module):
 
         # Returns
             [2D tensor]: logit of shape (B x n_classes)
-            [4D tensor]: feature map of shape (B x 2048 x H_ x W_)
+            [4D tensor]: feature map of shape (B x 2208 x H_ x W_)
             [4D tensor]: the attention map of shape (B x H_ x W_)
         """
         mini_batch = input_tensor.size(0)
@@ -163,7 +171,7 @@ class Model(nn.Module):
         attention_maps = self.attention(feature_maps)
         feature_matrix = self.bap(feature_maps, attention_maps)
         feature_matrix = feature_matrix.view(mini_batch, -1).contiguous()
-        # feature_matrix has size (B x (2048M))
+        # feature_matrix has size (B x (2208))
         logit = self.output(feature_matrix)
 
         # get a random attention map for each instance in the batch size
@@ -183,10 +191,4 @@ class Model(nn.Module):
             / (max_value - min_value)).view(mini_batch, height, width)
 
         return logit, feature_matrix, sampled_attentions
-
-
-if __name__ == '__main__':
-    checkpoint = '/home/john/temp/ckpt/006_resnet101_normed'
-    model = Model(ckpt=checkpoint, gpu=False)
-    import pdb; pdb.set_trace()
 
