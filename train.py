@@ -15,7 +15,7 @@ from utils import Tracker, get_predictions, SuperConvergence
 
 
 
-def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
+def main(output_dir, n_attentions, image_shape, batch_size,
          learning_rate, gpu):
     """Perform model training"""
     
@@ -29,8 +29,7 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
 
     # initialize the model
     model = Model(n_classes=196, input_size=image_shape,
-                  n_attentions=n_attentions, resnet_version=resnet_version,
-                  gpu=gpu)
+                  n_attentions=n_attentions, gpu=gpu)
     if gpu:
         model = model.cuda()
 
@@ -135,7 +134,7 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
             loss.backward()
             optimizer.step()
 
-            stop = (epoch == 5)
+            stop = (epoch == 10)
             scheduler.step(epoch=None, metrics=train_loss_tracker.get_average(),
                            stop=stop)
 
@@ -173,7 +172,6 @@ def main(output_dir, resnet_version, n_attentions, image_shape, batch_size,
         state_dict = {
             'n_classes': 196,
             'input_size': image_shape,
-            'resnet_version': resnet_version,
             'n_attentions': n_attentions,
             'state_dict': model.state_dict()
         }
@@ -188,8 +186,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('output_dir',
                         help='The output directory to store checkpoint')
-    parser.add_argument('--resnet_version', default=152, type=int,
-                        help='Supported resnet, must be 18, 34, 50, 101, 152')
     parser.add_argument('--n_attentions', default=32, type=int,
                         help='Number of attention channels')
     parser.add_argument('--image_size', nargs='+', default=(256, 256),
@@ -204,7 +200,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     main(
         output_dir=args.output_dir,
-        resnet_version=args.resnet_version,
         n_attentions=args.n_attentions,
         image_shape=args.image_size,
         batch_size=args.batch_size,

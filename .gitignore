@@ -71,6 +71,8 @@ dist/
 data/*
 !data/samples/
 !data/meta.json
+result.csv
+confidence.csv
 downloads/
 eggs/
 .eggs/

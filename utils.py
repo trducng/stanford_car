@@ -25,7 +25,7 @@ def get_predictions(logits):
         logits = np.expand_dims(logits, axis=0)
 
     predicted_idx = list(np.argmax(logits, axis=1))
-    predicted_str = [META[str(each)] for each in predicted_idx]
+    predicted_str = [META.get(str(each), '0') for each in predicted_idx]
 
     return predicted_idx, predicted_str
 
