@@ -74,7 +74,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('input_images',
                         help='Path to single image or folder of image')
-    parser.add_argument('--ckpt', default='ckpt/model.ckpt',
+    parser.add_argument('--ckpt', default='ckpt/010.ckpt',
                         help='Path to checkpoint file')
     parser.add_argument('--gpu', action='store_true')
 
