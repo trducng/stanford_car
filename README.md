@@ -50,10 +50,9 @@ The model employs some of the common deep learning techniques in computer vision
 Additionally, some techniques are also employed to improve training and prediction:
 
 - Super-Convergence: https://arxiv.org/abs/1708.07120. Inspired by cyclical learning rate schedule, this technique cuts training time by nearly a half, while also increasing final accuracy by making model converge to a better minima.
-- Temperature scaling: https://arxiv.org/abs/1706.04599. Deep learning models are usually over-confident. Temperature scaling calibrates the confidence score of model prediction, so that it is less likely for the incorrect prediction to have high confidence score.
+- Temperature scaling: https://arxiv.org/abs/1706.04599. Deep learning models are usually over-confident. Temperature scaling calibrates the confidence score of model prediction, so that it is less likely for the incorrect prediction to have high confidence score. In doing so, most incorrect predictions will have low confidence score, which allows manual double check if necessary.
 - Add more output logits than the number of classes in dataset. This model has 500 units in the output layer, even though the Stanford dataset only has 196 classes. Through experiments on this dataset, I consistently observed higher accuracy for the larger model. Moreover, by adding more units into the output layer, I hypothesize that it would be easier to fine-tune model whenever we want to incorporate new car classes (which should happen very regularly)
+- LIME model visualization: highlight parts of the input image that most influence model prediction. This code is in the notebook *`./LimeVisualization.ipynb`*. You will need to have `pillow` and `tensorwatch` installed (`pip install pillow tensorwatch`).
 
 Through combination of the above techniques, we attain a classification model that has higher accuracy performance, is faster to train, and easier to finetune.
-
-These techniques are chosen for increasing accuracy while reducing training time and providing a good confidence score for the model.
 
