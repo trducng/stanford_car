@@ -35,6 +35,7 @@ def evaluate(ckpt, image_folder, gpu):
 
     filenames = []
     logits = []
+    predicted_indices, predicted_strings = [], []
     for filename, each_image in dataloader:
         print(filename[0])
         if gpu:
@@ -45,15 +46,26 @@ def evaluate(ckpt, image_folder, gpu):
             logit = logit.squeeze()
             logit = torch.softmax(logit, dim=0)
             logit = logit.cpu().data.numpy()
+            predicted_idx, predicted_str = get_predictions(logit)
 
             logits.append(logit)
             filenames.append(filename)
+            predicted_indices.append(predicted_idx)
+            predicted_strings.append(predicted_str)
 
     # write out the result
     filenames = pd.DataFrame(np.stack(filenames, axis=0))
     logits = pd.DataFrame(np.stack(logits, axis=0))
-    result = pd.concat([filenames, logits], axis=1)
-    result.to_csv('result.csv', index=None, header=False)
+    predicted_indices = pd.DataFrame(np.stack(predicted_indices, axis=0))
+    predicted_strings = pd.DataFrame(np.stack(predicted_strings, axis=0))
+
+    # save the confidence and result
+    confidence = pd.concat([filenames, logits], axis=1)
+    confidence.to_csv('./data/confidence.csv', index=None, header=False)
+
+    result = pd.concat([filenames, predicted_indices, predicted_strings],
+                       axis=1)
+    result.to_csv('./data/result.csv', index=None, header=False)
 
     return logits
 
@@ -67,5 +79,5 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', action='store_true')
 
     args = parser.parse_args()
-    result = evaluate(args.ckpt, args.input_images, args.gpu)
+    logit = evaluate(args.ckpt, args.input_images, args.gpu)
 

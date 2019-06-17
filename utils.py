@@ -21,7 +21,7 @@ def get_predictions(logits):
         [list of ints]: the predicted class index
         [list of strs]: the predicted class string
     """
-    if logits.size == 1:
+    if logits.ndim == 1:
         logits = np.expand_dims(logits, axis=0)
 
     predicted_idx = list(np.argmax(logits, axis=1))
